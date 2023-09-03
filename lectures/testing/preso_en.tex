@@ -1,0 +1,481 @@
+\documentclass[compress]{beamer}
+
+\usepackage{minted}
+\usepackage[american,russian]{babel}
+
+\usetheme{Warsaw}
+
+\usecolortheme[named=black]{structure}
+\usefonttheme{structuresmallcapsserif}
+
+\title{Testing in Python}
+\author{Evgeniy Slobodkin}
+\institute{ITMO Univeristy}
+\date{Fall 2023}
+
+\begin{document}
+
+
+\frame{\titlepage}
+
+
+\begin{frame}
+\frametitle{Disclaimer}
+
+\begin{itemize}
+    \item<1-> Testing is challenging
+    \item<2-> Mainly we will focus on unit tests
+    \item<3-> Many facts in this lecture are language-agnostic
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Why do we need tests?}
+
+\begin{itemize}
+  \item<1-> Verify that new code works as expected
+  \item<2-> Verify that old code works as expected (\textit{Regression testing})
+  \item<3-> Document your code
+  \item<4-> Help newcomers with diving into the project
+  \item<5-> Discipline us (!)
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{doctest module\footnotemark[1]}
+\footnotetext[1]{\url{https://docs.python.org/3/library/doctest.html}}
+
+\begin{minted}[fontsize=\small]{Python}
+# main.py
+def second_max(xs: list[int]) -> int | None:
+    """Finds a second max in a given list if it exists.
+
+    >>> second_max([])
+    None
+    >>> second_max([1, 1])
+    None
+    >>> second_max([3, 1, 2])
+    2
+    """
+    xs = list(set(xs))
+    return xs[-2] if len(xs) >= 2 else None
+\end{minted}
+
+\vspace{0.3in}
+
+Possible way to run your doctests: \texttt{python -m doctest main.py}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{When to use doctest?}
+
+\begin{itemize}
+    \item Test your documentation
+    \item Do not test logic by \texttt{doctest}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{unittest module}
+
+\begin{itemize}
+  \item Testing Framework in Python standard library
+  \item Inspired by JUnit
+  \item TODO
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{pytest}
+
+\begin{columns}[T]
+\begin{column}{.8\textwidth}
+    \begin{itemize}
+    \item Initially was originated from the PyPy project
+    \item Many powerful features
+    \item One \textbf{assert} for any case
+    \item There is only reason to use \texttt{unittest} instead of \texttt{pytest}: no third-party libraries are allowed in your project
+    \end{itemize}
+\end{column}
+\begin{column}{.2\textwidth}
+    \includegraphics[width=\textwidth]{pytest_logo.png}
+\end{column}
+\end{columns}
+  
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Test parametrization\footnotemark[1]}
+\footnotetext[1]{https://docs.pytest.org/en/latest/example/parametrize.html}
+
+\begin{overprint}
+\onslide<1>
+\begin{center}
+\begin{minted}{Python}
+def test_second_max() -> None:
+    """Test ensures that second_max works correctly."""
+    datas = (
+        ([], None),
+        ([1], None),
+        ([1, 1], None),
+        ([2, 1], 1),
+        (list(range(10)), 8),
+    )
+    for xs, sm in datas:
+        assert second_max(xs) == sm
+\end{minted}
+\end{center}
+
+\onslide<2>
+\begin{center}
+\Huge Do not do this!
+\end{center}
+
+\onslide<3>
+\begin{center}
+\begin{minted}{Python}
+@pytest.mark.parametrize(
+    "xs,sm",
+    [
+        ([], None),
+        ([1], None),
+        ([1, 1], None),
+        ([2, 1], 1),
+        (list(range(10)), 8),
+    ],
+)
+def test_second_max(xs: list[int], sm: int) -> None:
+    """Test ensures that second_max works correctly."""
+    assert second_max(xs) == sm
+\end{minted}
+\end{center}
+\end{overprint}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Fixtures\footnotemark[1]}
+\footnotetext[1]{https://docs.pytest.org/en/latest/explanation/fixtures.html}
+
+\begin{overprint}
+
+\onslide<1>
+From pytest doc: \textit{In testing, a fixture provides a defined, reliable and consistent context for the tests.}
+
+\vspace{0.3in}
+
+\begin{columns}[T]
+\begin{column}{.5\textwidth}
+\begin{minted}[fontsize=\scriptsize]{Python}
+@pytest.fixture(scope='session')
+def course_timetable() -> Timetable:
+    return {
+        'C++': 'Fri, 10AM',
+        'Python': 'Wed, 9AM',
+        'Algorithms': 'Mon, 2PM',
+        'Algebra': 'Mon, 5PM',
+        'ML': 'Tue, 10AM',
+    }
+\end{minted}
+\end{column}
+\begin{column}{.5\textwidth}
+\begin{minted}[fontsize=\scriptsize]{Python}
+@pytest.fixture(scope='function')
+def vasya_student() -> Student:
+    return Student(
+        name='Vasya',
+        courses={'C++', 'Python'},
+    )
+\end{minted}
+\end{column}
+\end{columns}
+
+
+\onslide<2>
+\begin{center}
+\begin{minted}[fontsize=\footnotesize]{Python}
+def test_vasya_timetable(
+    vasya_student: Student,
+    course_timetable: Timetable,
+) -> None:
+    vt = generate_student_timetable(
+        vasya_student,
+        course_timtable,
+    )
+
+    assert vt == 'Python: Wed, 9AM\nC++: Fri, 10AM'
+\end{minted}
+\end{center}
+
+\end{overprint}
+
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Factory as Fixture Pattern}
+% \frametitle{Factory as Fixture Pattern\footnotemark[1]}
+% \footnotetext[1]{https://docs.pytest.org/en/6.2.x/fixture.html#factories-as-fixtures}
+
+\begin{overprint}
+\onslide<1>
+\begin{center}
+\begin{minted}[fontsize=\scriptsize]{Python}
+StudentFactory: TypeAlias = Callable[[str, list[str]], Student]
+
+@pytest.fixture(scope='session')
+def student_factory() -> StudentFactory:
+    names = ('Petya', 'Vasya', ..., 'Grisha')
+    courses = ('C++', 'Python', ..., 'Algorithms')
+
+    def _factory(name=None, courses=None) -> Student:
+        cnt = random.randint(a=3,b=8)
+        name = random.choice(names) if name is None else name
+        courses = random.sample(courses, cnt) if courses is None else courses
+        return Student(name=name, courses=courses)
+
+    return _factory
+\end{minted}
+\end{center}
+
+\onslide<2>
+\begin{center}
+\begin{minted}[fontsize=\scriptsize]{Python}
+def test_scholarship_value(student_factory: StudentFactory) -> None:
+    student = student_factory()
+    assert 0 <= calc_scholarship_rub(student) <= 15_000
+
+
+def test_register_for_course(student_factory: StudentFactory) -> None:
+    students = [student_factory() for _ in range(10)]
+    cpp_students = [s for s in students if 'C++' in s.courses]
+
+    register_students(students)
+    assert len(get_students_for_course('C++')) == len(cpp_students)
+
+
+def test_empty_courses_is_forbidden(
+    student_factory: StudentFactory,
+    course_timetable: Timetable,
+) -> None:
+    student = student_factory(courses=[])
+    with pytest.raises(EmptyCoursesError):
+        _ = generate_student_timetable(student, course_timetable)
+\end{minted}
+\end{center}
+\end{overprint}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Libraries for Fake Data Generation}
+
+The most common are \href{https://mimesis.name/en/master/}{Mimesis\footnotemark[1]} and \href{https://faker.readthedocs.io/en/master/}{Faker\footnotemark[2]}
+
+\footnotetext[1]{\url{https://mimesis.name/en/master/}}
+\footnotetext[2]{\url{https://faker.readthedocs.io/en/master/}}
+
+\begin{center}
+    \begin{itemize}
+        \item Provide generators for different entities
+        \item Provide localization
+        \item Do not forget about the seed!\footnotemark[3]
+    \end{itemize}
+\end{center}
+
+\footnotetext[3]{\url{https://mimesis.name/en/master/random_and_seed.html}}
+
+\vspace{0.2in}
+
+\begin{minted}[fontsize=\scriptsize]{Python}
+# from mimesis import ...
+>>> mf = Field(locale=Locale.RU, seed=random.seed())
+>>> mf('person.first_name')
+'Родослав'
+>>> mf('person.occupation')
+'Учитель'
+>>> mf('person.email')
+'animation1848@yahoo.com'
+\end{minted}
+
+\end{frame}
+
+% \begin{frame}[fragile]
+% \frametitle{Advanced Factory as Fixture}
+
+% \begin{minted}[fontsize=\scriptsize]{Python}
+% class StudentData(TypedDict):
+%     name: str
+%     email: str
+%     gender: Literal['M', 'F']
+
+% @pytest.fixture(scope='session')
+% def student_factory() -> StudentFactory:
+%     def _factory(**fields: Unpack[StudentData]) -> StudentData:
+%         mf = Field(locale=Locale.RU, seed=random.seed())
+%         gender = Gender.FEMALE if random.getrandbits(1) else Gender.MALE
+%         name = mf('person.first_name', gender=gender)
+%         email = mf('person.email')
+%         schema = Schema(
+%             schema=lambda: {
+%                 'name': name,
+%                 'gender': 'F' if gender is Gender.FEMALE else 'M',
+%                 'email': email,
+%             }
+%         )
+
+%         return {**(schema.create()[0]), **fields}
+
+%     return _factory
+% \end{minted}
+
+% \end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Test organization}
+
+\textit{One of the examples of project organization (my preferred)}:
+
+\begin{columns}[T]
+\begin{column}{.5\textwidth}
+\begin{minted}[fontsize=\small]{Shell}
+src
+    __init__.py
+tests
+    conftest.py
+    plugins
+        student_gen.py
+        timetable_gen.py
+    test_student
+        test_student_data.py
+        conftest.py
+\end{minted}
+\end{column}
+
+\begin{column}{.5\textwidth}
+\begin{minted}[fontsize=\footnotesize]{Python}
+# tests/conftest.py
+pytest_plugins = [
+    "plugins.student_gen",
+    "plugins.timetable_gen",
+]
+
+def pytest_configure(config):
+    ...
+\end{minted}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Mocking}
+
+\begin{itemize}
+    \item How to test code that calls other services or sends messages (for instance, Telegram Bot)?
+    \item How to test code that calls some still unimplemented functions (but with known API)?
+\end{itemize}
+
+\vspace{0.2in}
+
+\begin{center}
+\includegraphics[scale=0.2]{thinking_emoji.png}
+\end{center}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Mock it!}
+
+\begin{center}
+\begin{minted}[fontsize=\scriptsize]{Python}
+# publisher.py
+class Publisher:
+    def __init__(bot: Bot, admin: User, subs: list[User]) -> None:
+        self._bot = bot
+        self._admin = admin
+        self._subs = subs
+
+    def publish(self, announcement: str) -> None:
+        for sub in self.subs:
+            self._bot.send_message(
+                sub.id, f'{sub.name}, hi!\n\n{announcement}'
+            )
+        self._bot.send_message(self._admin.id, 'All done!')
+
+# test_publisher.py
+def test_publish() -> None:
+    mock = create_autospec(Bot)
+    publisher = Publisher(mock, User(1, 'Vasya'), [User(2, 'Petya')]
+
+    publisher.publish()
+
+    assert mock.send_message.mock_calls[0].args == (2, ANY)
+    assert mock.send_message.mock_calls[1].args == (1, ANY)
+\end{minted}
+\end{center}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Different mocks\footnotemark[1]}
+
+\footnotetext[1]{\url{https://docs.python.org/3/library/unittest.mock.html}}
+
+\begin{itemize}
+    \item Mock
+    \item MagicMock
+    \item NonCallableMock
+    \item NonCallableMagicMock
+    \item PropertyMock
+    \item AsyncMock
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Useful pytest plugins}
+
+\begin{itemize}
+    \item pytest-randomly\footnote[1]{\url{https://pypi.org/project/pytest-randomly/}}
+    \item pytest-cov\footnote[2]{\url{https://pypi.org/project/pytest-cov/}}
+    \item pytest-asyncio\footnote[3]{\url{https://pypi.org/project/pytest-asyncio/}}
+    \item pytest-xdist\footnote[4]{\url{https://pypi.org/project/pytest-xdist/}}
+    \item pytest-mock\footnote[5]{\url{https://pypi.org/project/pytest-mock/}}
+    \item pytest-timeout\footnote[6]{\url{https://pypi.org/project/pytest-timeout/}}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Property-based testing}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hypothesis}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example}
+
+\end{frame}
+
+\end{document}

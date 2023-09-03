@@ -1,2 +1,3 @@
-# python-teaching
-Home for my teaching materials for Python Course (fall 2023)
+# Python Course, Fall 2023
+
+Home for my teaching materials for Python Course (IFMO, fall 2023).
