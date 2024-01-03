@@ -1,3 +1,3 @@
-# Python Course, Fall 2023
+# Python Course, IFMO, Fall 2023
 
-Home for my teaching materials for Python Course (IFMO, fall 2023).
+Home for my teaching materials for Python Course (in Russian).
